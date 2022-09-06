@@ -2,11 +2,12 @@ package gitlet;
 
 // TODO: any imports you need here
 
-import java.util.Date; // TODO: You'll likely use this in this class
+import java.util.*;
 import java.io.Serializable;
 import java.io.File;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
+
 /** Represents a gitlet commit object.
  *  TODO: It's a good idea to give a description here of what else this Class
  *  does at a high level.
@@ -34,14 +35,15 @@ public class Commit implements Serializable{
   /** sha-1 id of this Commit. */
   private final String id;
 
-  /** File needs to be tracked. */
-  private final Map<String, String> trackedF;
+  /** File being tracked. */
+  private final Map<String, String> trackedF; //path:sha-1 id
 
-  /** path of file. */
+  /** The file object. */
   private final File file;
 
   /* TODO: fill in the rest of this class. */
 
+  /** constructor */
   public Commit(String message, List<String> parent, Map<String, String> trackedF){
     this.message = message;
     this.parent = parent;
@@ -51,59 +53,63 @@ public class Commit implements Serializable{
     this.file = Utils.join(Repository.COMMITS_DIR, this.id);
   }
 
-  /** initial */
+  /** Initial */
   public Commit(){
-    this.message = 'initial message';
+    this.message = "initial message";
     this.parent = new ArrayList<>();
     this.trackedF = new HashMap<>();
     this.date = new Date(0);
     this.id = generateId();
     this.file = Utils.join(Repository.COMMITS_DIR, this.id);
   }
-
+  /** Save the commit object */
   public void save(){
     Utils.writeObject(file, this);
   }
 
-  public static Commit fromFile(String id){
-    File commFile = Utils.join(Repository.COMMITS_DIR, this.id);
+  /** Get the commit from the sha-1 id */
+  public static Commit fromId(String id){
+    File commFile = Utils.join(Repository.COMMITS_DIR, id);
     return Utils.readObject(commFile, Commit.class);
   }
 
-  /** generate id*/
+  /** Generate id */
   private String generateId(){
     return Utils.sha1(this.message, getTime(), this.parent.toString(), this.trackedF.toString());
   }
 
-  /** need to get the time*/
-  /** week month day hour: minute: second year timezone*/
+  /** Need to get the time */
+  /** Week month day hour: minute: second year timezone */
   public String getTime(){
     DateFormat dateFormat = new SimpleDateFormat("EEE MMM d HH: mm: ss yyyy Z", Locale.ENGLISH);
     return dateFormat.format(date);
   }
 
-  /** get the message*/
+  /** Get the message*/
   public String getMessage(){
     return this.message;
   }
 
-  /** get sha1 id*/
+  /** Get sha1 id */
   public String getId(){
     return this.id;
   }
 
+  /** Get tracked file */
   public Map<String, String> getTrackedF(){
     return this.trackedF;
   }
 
+  /** Get a list of parent which is sha-1 id actually. */
   public List<String> getParent(){
     return this.parent;
   }
 
+  /** Get the log message of the commit */
   public String getLog(){
     StringBuilder logBuilder = new StringBuilder();
     logBuilder.append("===").append("\n");
-    logBuilder.append("commit").append(" ").append(id).append("\n");
+    logBuilder.append("Commit").append(" ").append(id).append("\n");
     if(parent.size() > 1){
       logBuilder.append("Merge:");
       for(String p : parent){
@@ -111,25 +117,27 @@ public class Commit implements Serializable{
       }
       logBuilder.append("\n");
     }
-    logBuilder.append("Date:").append(" ").append(getTime()).append("\n");
+    logBuilder.append(getTime()).append("\n");
     logBuilder.append(message).append("\n");
     return logBuilder.toString();
   }
 
-  public boolean restoreTracked(String filePath){
+  /** Return true if the file does exist in this commit */
+  public boolean trackedExists(String filePath){
     String blobId = trackedF.get(filePath);
 
     if(blobId == null){
       return false;
     }
 
-    Blob.fromFile(blobId).writeContentToSource();
+    Blob.fromId(blobId).writeContentsForSource();
     return true;
   }
 
+  /** Overwrite all tracked files */
   public void restoreTrackedAll(){
     for(String blobId : trackedF.values()){
-      Blob.fromFile(blobId).writeContentToSource();
+      Blob.fromId(blobId).writeContentsForSource();
     }
   }
 }
